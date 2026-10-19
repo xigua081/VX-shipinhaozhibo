@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>视频号素材工作台</title>
+<style>
+:root{
+  --bg:#080e1a; --panel:#0d1526; --panel2:#111c30; --line:#1e2c45;
+  --txt:#e6ecf7; --dim:#8496b0; --dim2:#5c6d87;
+  --gold:#e0b457; --gold-dim:#8a6c2e;
+  --ok:#3fbf8f; --warn:#e0a33a; --err:#e2604f; --blue:#4a86e8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--txt);
+  font-family:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  font-size:14px; line-height:1.6; display:flex; min-height:100vh;
+}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#22314d;border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* 侧栏 */
+aside{
+  width:216px; flex:0 0 216px; background:var(--panel);
+  border-right:1px solid var(--line); padding:22px 0;
+  display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
+}
+.brand{padding:0 22px 22px; border-bottom:1px solid var(--line); margin-bottom:14px}
+.brand h1{font-size:15px; font-weight:500; letter-spacing:.5px}
+.brand h1 span{color:var(--gold)}
+.brand p{font-size:11.5px; color:var(--dim2); margin-top:3px; letter-spacing:.3px}
+nav{display:flex;flex-direction:column;gap:2px;padding:0 10px}
+nav button{
+  all:unset; cursor:pointer; padding:9px 12px; border-radius:7px;
+  color:var(--dim); font-size:13.5px; display:flex; align-items:center; gap:9px;
+  transition:background .15s,color .15s;
+}
+nav button:hover{background:var(--panel2); color:var(--txt)}
+nav button.on{background:#16233a; color:var(--gold)}
+nav button i{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.55;display:block}
+.side-foot{margin-top:auto; padding:16px 22px 0; font-size:11px; color:var(--dim2); line-height:1.7}
+.side-foot b{color:var(--dim); font-weight:400}
+
+/* 主区 */
+main{flex:1; min-width:0; padding:26px 30px 40px; max-width:1500px}
+.head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;gap:16px}
+.head h2{font-size:17px;font-weight:500}
+.head .sub{font-size:12px;color:var(--dim2)}
+.page{display:none}
+.page.on{display:block}
+
+/* 状态条 */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:14px 16px;
+}
+.card .k{font-size:11.5px;color:var(--dim2);letter-spacing:.4px;margin-bottom:6px}
+.card .v{font-size:15px;display:flex;align-items:center;gap:7px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim2);flex:0 0 7px}
+.dot.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(63,191,143,.13)}
+.dot.err{background:var(--err);box-shadow:0 0 0 3px rgba(226,96,79,.13)}
+.dot.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(224,163,58,.13)}
+.card .mono{font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--dim)}
+
+/* 按钮 */
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.btn{
+  all:unset;cursor:pointer;padding:9px 18px;border-radius:8px;
+  border:1px solid var(--line);background:var(--panel2);color:var(--txt);
+  font-size:13px;transition:.15s;text-align:center;
+}
+.btn:hover{border-color:#2f4467;background:#16233a}
+.btn.primary{background:var(--gold);color:#1a1305;border-color:var(--gold);font-weight:500}
+.btn.primary:hover{background:#eec468;border-color:#eec468}
+.btn.danger{color:#ffb3a8;border-color:#3d2320;background:#1d1413}
+.btn.danger:hover{background:#2a1917;border-color:#5a2f29}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* 面板块 */
+.block{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.block-h{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.block-h h3{font-size:13px;font-weight:500;color:var(--txt)}
+.block-h span{font-size:11.5px;color:var(--dim2)}
+.log{
+  font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.75;
+  padding:12px 16px;height:320px;overflow:auto;color:#a9bcd4;white-space:pre-wrap;
+  word-break:break-all;
+}
+.log .l-err{color:#ff9184}
+.log .l-ok{color:#5fd6ab}
+.log .l-warn{color:#e8bc70}
+.frame{border:0;width:100%;height:calc(100vh - 268px);background:#fff;display:block}
+.hint{font-size:12.5px;color:var(--dim);padding:14px 16px;line-height:1.8}
+.hint code{background:#0a1220;border:1px solid var(--line);padding:1px 6px;border-radius:4px;font-size:12px;color:var(--gold)}
+.steps{counter-reset:s;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.step{display:flex;gap:11px;font-size:13px;color:var(--dim);line-height:1.7}
+.step::before{
+  counter-increment:s;content:counter(s);
+  flex:0 0 20px;height:20px;border-radius:50%;background:#16233a;color:var(--gold);
+  font-size:11px;display:flex;align-items:center;justify-content:center;margin-top:2px;
+}
+.step b{color:var(--txt);font-weight:400}
+.toast{
+  position:fixed;right:24px;bottom:24px;background:#16233a;border:1px solid #2f4467;
+  color:var(--txt);padding:11px 18px;border-radius:8px;font-size:13px;
+  opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none;z-index:99;
+  max-width:min(420px,80vw);
+}
+.toast.on{opacity:1;transform:none}
+.banner{
+  display:none; background:#2a1512; border:1px solid #6b2f26; border-left:3px solid var(--err);
+  border-radius:8px; padding:13px 16px; margin-bottom:16px; font-size:13px; line-height:1.75;
+  color:#ffc9c0;
+}
+.banner.on{display:block}
+.banner b{color:#fff;font-weight:500}
+.banner code{background:#1a0d0b;border:1px solid #4a2019;padding:1px 6px;border-radius:4px;color:#ffd9d2;font-size:12px}
+.acct{display:inline-flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 11px;font-size:12.5px;margin:0 8px 8px 0;cursor:pointer;transition:.15s}
+.acct:hover{border-color:var(--gold-dim);background:#16233a}
+.acct b{color:var(--gold);font-weight:500;font-family:ui-monospace,Consolas,monospace}
+.rec-item{display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px}
+.rec-item:last-child{border-bottom:0}
+.rec-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+.rec-meta{color:var(--dim2);font-size:12px;font-family:ui-monospace,Consolas,monospace;white-space:nowrap}
+.rec-end{color:var(--dim2);font-size:12px;white-space:nowrap}
+.btn.tiny{padding:4px 12px;font-size:12px}
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.tool{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;
+  text-decoration:none;color:inherit;transition:.15s;display:block;
+}
+.tool:hover{border-color:var(--gold-dim);background:var(--panel2)}
+.tool h4{font-size:13.5px;font-weight:500;margin-bottom:6px}
+.tool p{font-size:12px;color:var(--dim2);line-height:1.6}
+.tool .tag{display:inline-block;font-size:10.5px;color:var(--gold);border:1px solid var(--gold-dim);
+  border-radius:4px;padding:0 5px;margin-left:6px;vertical-align:2px}
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <h1>视频号<span>素材工作台</span></h1>
+    <p>MITM · 抓取 · 归档</p>
+  </div>
+  <nav>
+    <button class="on" data-tab="dash"><i></i>工作台</button>
+    <button data-tab="engine"><i></i>引擎界面</button>
+    <button data-tab="tools"><i></i>工具箱</button>
+    <button data-tab="record"><i></i>录直播</button>
+    <button data-tab="help"><i></i>使用说明</button>
+  </nav>
+  <div class="side-foot">
+    引擎 <b id="f-engine">—</b><br>
+    面板 <b id="f-port">—</b><br>
+    状态 <b id="f-state">初始化</b>
+  </div>
+</aside>
+
+<main>
+  <div class="head">
+    <h2 id="title">工作台</h2>
+    <div class="sub" id="subtitle">引擎与代理控制</div>
+  </div>
+
+  <!-- 工作台 -->
+  <section class="page on" id="page-dash">
+    <div class="banner" id="no-admin">
+      <b>当前是普通权限，引擎无法启动。</b><br>
+      装根证书需要管理员权限，非管理员启动引擎会直接报错退出（表现就是闪退）。<br>
+      请关闭本窗口，<b>右键 <code>启动.bat</code> → 以管理员身份运行</b>。
+    </div>
+
+    <div class="cards">
+      <div class="card"><div class="k">引擎进程</div><div class="v"><span class="dot" id="d-engine"></span><span id="v-engine">未运行</span></div></div>
+      <div class="card"><div class="k">API 端口</div><div class="v"><span class="mono" id="v-eport">—</span></div></div>
+      <div class="card"><div class="k">代理端口</div><div class="v"><span class="mono" id="v-pport">—</span></div></div>
+      <div class="card"><div class="k">系统代理</div><div class="v"><span class="dot" id="d-proxy"></span><span id="v-proxy">—</span></div></div>
+      <div class="card"><div class="k">改动前代理</div><div class="v"><span class="mono" id="v-proxy-orig">—</span></div></div>
+      <div class="card"><div class="k">管理员权限</div><div class="v"><span class="dot" id="d-admin"></span><span id="v-admin">—</span></div></div>
+      <div class="card"><div class="k">FFmpeg</div><div class="v"><span class="dot" id="d-ff"></span><span id="v-ff">—</span></div></div>
+    </div>
+
+    <div class="btns">
+      <button class="btn primary" id="b-start">启动引擎</button>
+      <button class="btn" id="b-stop">停止引擎</button>
+      <button class="btn" id="b-archive">整理到账号文件夹</button>
+      <button class="btn" id="b-clean">清理临时文件</button>
+      <button class="btn" id="b-proxy-on">启用系统代理</button>
+      <button class="btn danger" id="b-proxy-off">还原代理（断网急救）</button>
+      <button class="btn" id="b-quit" style="margin-left:auto">退出程序</button>
+    </div>
+
+    <div class="block">
+      <div class="block-h"><h3>账号归档</h3><span id="arch-temp"></span></div>
+      <div class="hint" id="arch-list">还没有归档的账号。下载完成后会自动把成片移进 <code>downloads\&lt;账号名&gt;\</code>。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-h"><h3>引擎日志</h3><span id="log-state">等待启动</span></div>
+      <div class="log" id="log">尚无输出。</div>
+    </div>
+  </section>
+
+  <!-- 引擎界面 -->
+  <section class="page" id="page-engine">
+    <div class="hint" style="padding:0 0 12px">
+      下方为引擎自带的下载管理界面。若空白，说明引擎未启动或端口未就绪。<br>
+      <b>删除任务时如果确认框卡住、点「删除」没反应</b>，点下面的「刷新」——那是引擎界面的已知问题，
+      列表里残留了已经不存在的任务，重试多少次都会报「下载任务不存在」。
+    </div>
+    <div class="btns">
+      <button class="btn" id="b-reload-frame">刷新引擎界面</button>
+      <button class="btn" id="b-open-frame">在新窗口打开</button>
+    </div>
+    <div class="block"><iframe class="frame" id="frame" src="about:blank"></iframe></div>
+  </section>
+
+  <!-- 工具箱 -->
+  <section class="page" id="page-tools">
+    <div class="tools-grid">
+      <a class="tool" href="/tools/m3u8.html" target="_blank">
+        <h4>M3U8 解析器<span class="tag">猫抓内核</span></h4>
+        <p>抓猫爪的 HLS 解析与多线程下载内核，支持 AES-128 解密、切片范围、边下边存。</p>
+      </a>
+      <a class="tool" href="#" onclick="return false;" style="opacity:.5;cursor:not-allowed">
+        <h4>MPD / DASH<span class="tag">规划中</span></h4>
+        <p>DASH 流解析，需引擎侧支持。当前版本未开放。</p>
+      </a>
+      <a class="tool" href="/data/" target="_blank" onclick="openData(event)">
+        <h4>下载目录</h4>
+        <p>打开素材归档文件夹，按账号分目录。</p>
+      </a>
+    </div>
+  </section>
+
+  <!-- 录直播 -->
+  <section class="page" id="page-record">
+    <div class="block">
+      <div class="block-h"><h3>直播录制</h3><span id="rec-dir">—</span></div>
+      <div style="padding:16px">
+        <div class="row" style="display:flex;gap:10px;margin-bottom:10px">
+          <input class="grow" id="rec-url" placeholder="粘贴 m3u8 / flv 地址（http 开头）" style="flex:1">
+        </div>
+        <div class="row" style="display:flex;gap:10px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
+          <input id="rec-ref" placeholder="Referer（可选）" style="flex:1;min-width:200px">
+          <input id="rec-name" placeholder="文件名（可选）" style="width:180px">
+        </div>
+        <div class="row" style="display:flex;gap:10px;margin-bottom:12px">
+          <input id="rec-cookie" placeholder="Cookie（可选，403 时填）" style="flex:1">
+        </div>
+        <div class="btns" style="margin-bottom:0;align-items:center">
+          <button class="btn primary" id="b-rec-start">开始录制</button>
+          <button class="btn" id="b-rec-open">打开录制目录</button>
+          <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--dim);cursor:pointer">
+            <input type="checkbox" id="rec-auto" checked style="width:auto;margin:0">
+            录制结束后自动转 MP4（成功则删除 .ts）
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-h"><h3>录制任务</h3><span id="rec-count">0</span></div>
+      <div id="rec-list" class="hint">还没有录制任务。</div>
+    </div>
+
+    <div class="hint">
+      <b>怎么拿地址：</b>浏览器打开直播页 → 登录 → F12 → Network → 筛选 <code>m3u8</code> 或 <code>flv</code> → 刷新播放器 →
+      复制那条请求的 URL，把 Referer 填成直播页地址。<br>
+      直播结束或断流时 ffmpeg 会自己退出，任务状态变成「已结束」，文件已经在录制目录里。
+    </div>
+  </section>
+
+  <!-- 说明 -->
+  <section class="page" id="page-help">
+    <div class="block">
+      <div class="block-h"><h3>三步上手</h3></div>
+      <div class="steps">
+        <div class="step"><span><b>以管理员身份运行</b>启动脚本。首次会提示 UAC，必须同意，否则装不了根证书、改不了系统代理。</span></div>
+        <div class="step"><span>点「<b>启动引擎</b>」。等日志出现代理就绪字样，系统代理通常会被引擎自动接管。</span></div>
+        <div class="step"><span>打开微信 PC 端进入视频号，播放任意视频，<b>播放器工具栏会多出下载按钮</b>。</span></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-h"><h3>断网急救</h3></div>
+      <div class="hint">
+        如果关掉程序后浏览器上不了网，说明系统代理没被清掉。点「<b>还原代理（断网急救）</b>」即可恢复——<br>
+        它会把代理恢复成<b>本工具启动前</b>的样子（例如你原本在用的 127.0.0.1:7897），而不是一律关掉，
+        所以不会误伤你自己在跑的代理软件。原始记录保存在 <code>data\proxy_backup.json</code>。<br>
+        也可以手动到 <code>设置 → 网络和 Internet → 代理</code> 里改回来。
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-h"><h3>安全边界</h3></div>
+      <div class="hint">
+        本工具会在系统根证书区安装一张自签 CA，并让流量经过本地代理——这是解开视频号加密流的前提，
+        也意味着运行期间代理能看到微信的 HTTPS 请求。<br>
+        引擎与解析内核均为开源实现，代码可自行审计。不用时请停止引擎并清理代理。
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let status = null, lastLogLen = -1;
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), 2400);
+}
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+function fmtBytes(b){
+  b = Number(b) || 0;
+  const u = ['B','KB','MB','GB']; let i = 0;
+  while (b >= 1024 && i < 3) { b /= 1024; i++; }
+  return b.toFixed(i ? 1 : 0) + ' ' + u[i];
+}
+
+function fmtClock(s){
+  s = Math.max(0, Math.round(Number(s) || 0));
+  const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return (h ? h + ':' : '') + String(m).padStart(h?2:1,'0') + ':' + String(x).padStart(2,'0');
+}
+
+async function refreshRecords(){
+  try{
+    const d = await api('/api/record/list');
+    document.getElementById('rec-dir').textContent = d.dir || '';
+    const items = d.items || [];
+    if(d.settings){
+      const cb = document.getElementById('rec-auto');
+      if(cb && document.activeElement !== cb) cb.checked = !!d.settings.auto_mp4;
+    }
+    const live = items.filter(i => i.state === 'recording').length;
+    document.getElementById('rec-count').textContent =
+      items.length ? `${live} 个进行中 / 共 ${items.length}` : '0';
+    const box = document.getElementById('rec-list');
+    if(!items.length){
+      box.className = 'hint';
+      box.textContent = '还没有录制任务。';
+      return;
+    }
+    box.className = '';
+    const STATE = {recording:'录制中', finalizing:'转码中…', done:'已完成', failed:'失败'};
+    box.innerHTML = items.map(i => {
+      const dotCls = i.state === 'failed' ? 'err' : (i.state === 'recording' ? 'ok' : 'warn');
+      const right = i.state === 'recording'
+        ? `<button class="btn tiny" data-stop="${i.id}">停止</button>`
+        : `<span class="rec-end">${STATE[i.state] || i.state}</span>`;
+      return `<div class="rec-item">
+        <span class="dot ${dotCls}"></span>
+        <span class="rec-name" title="${esc(i.file)}">${esc(i.name)}</span>
+        <span class="rec-meta">${fmtBytes(i.size)} · ${fmtClock(i.elapsed)}</span>
+        ${right}
+      </div>`;
+    }).join('');
+    box.querySelectorAll('[data-stop]').forEach(b => {
+      b.onclick = async () => {
+        const r = await api('/api/record/stop', {method:'POST', body: JSON.stringify({id: +b.dataset.stop})});
+        toast(r.msg || '完成');
+        refreshRecords();
+      };
+    });
+  }catch(e){}
+}
+
+function setDot(id, cls){ document.getElementById(id).className = 'dot ' + (cls||''); }
+
+async function api(path, opt){
+  const r = await fetch(path, opt);
+  return r.json();
+}
+
+function render(s){
+  status = s;
+  const e = s.engine, p = s.proxy;
+
+  setDot('d-engine', e.running ? 'ok' : 'err');
+  document.getElementById('v-engine').textContent = e.running ? `运行中 · PID ${e.pid}` : '未运行';
+  document.getElementById('v-eport').textContent = s.api_port || e.port || '—';
+  document.getElementById('v-pport').textContent =
+    (s.proxy_port || '—') + (s.proxy_port_open ? '' : '（未监听）');
+  setDot('d-proxy', p.enabled ? 'ok' : 'warn');
+  document.getElementById('v-proxy').textContent = p.enabled ? (p.server || '已启用') : '未启用';
+  const bak = s.proxy_backup;
+  document.getElementById('v-proxy-orig').textContent =
+    bak ? (bak.enabled ? (bak.server || '原为开启') : '原为关闭') : '—';
+  setDot('d-admin', s.admin ? 'ok' : 'err');
+  document.getElementById('v-admin').textContent = s.admin ? '已提权' : '普通权限';
+  const ffOk = s.ffmpeg && s.ffprobe;
+  setDot('d-ff', ffOk ? 'ok' : 'err');
+  document.getElementById('v-ff').textContent =
+    ffOk ? '已内置' : (!s.ffmpeg ? '缺 ffmpeg' : '缺 ffprobe');
+
+  document.getElementById('f-engine').textContent = e.binary || '未找到';
+  document.getElementById('f-port').textContent = ':' + s.panel_port;
+  document.getElementById('f-state').textContent = e.running ? '运行中' : '待启动';
+
+  document.getElementById('no-admin').classList.toggle('on', !s.admin);
+  document.getElementById('b-start').disabled = e.running || !s.admin;
+  document.getElementById('b-stop').disabled = !e.running;
+
+  document.getElementById('arch-temp').textContent =
+    s.temp_dirs ? `${s.temp_dirs} 个临时目录待清理` : '';
+  const box = document.getElementById('arch-list');
+  const accs = s.accounts || [];
+  box.innerHTML = accs.length
+    ? accs.map(a => `<span class="acct" data-acct="${esc(a.name)}" title="点击打开文件夹">${esc(a.name)} <b>${a.count}</b></span>`).join('')
+    : '还没有归档的账号。下载完成后会自动把成片移进 <code>downloads\\&lt;账号名&gt;\\</code>。';
+  box.querySelectorAll('.acct[data-acct]').forEach(el => {
+    el.onclick = () => api('/api/open', {
+      method: 'POST',
+      body: JSON.stringify({ path: 'account:' + el.dataset.acct })
+    }).then(r => { if (!r.ok) toast(r.msg || '打开失败'); }).catch(()=>{});
+  });
+
+  const fr = document.getElementById('frame');
+  const want = (e.running && e.port) ? `http://127.0.0.1:${e.port}/` : '';
+  if (want && fr.dataset.loaded !== want){
+    fr.dataset.loaded = want;
+    fr.src = want;
+  }
+}
+
+function renderLog(lines, running){
+  const box = document.getElementById('log');
+  if (lines.length === lastLogLen) return;
+  lastLogLen = lines.length;
+  document.getElementById('log-state').textContent = running ? '实时输出' : '已停止';
+  box.innerHTML = lines.map(l=>{
+    let cls = '';
+    if (/失败|错误|error|fail|panic/i.test(l)) cls = 'l-err';
+    else if (/成功|已启动|就绪|success|ready|代理服务启动/i.test(l)) cls = 'l-ok';
+    else if (/警告|warn|⚠/i.test(l)) cls = 'l-warn';
+    const esc = l.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    return cls ? `<span class="${cls}">${esc}</span>` : esc;
+  }).join('\n');
+  box.scrollTop = box.scrollHeight;
+}
+
+async function refresh(){
+  try{
+    const s = await api('/api/status');
+    render(s);
+    const l = await api('/api/log?n=300');
+    renderLog(l.lines, l.running);
+    if (document.getElementById('page-record').classList.contains('on')) refreshRecords();
+  }catch(err){
+    document.getElementById('f-state').textContent = '面板断连';
+  }
+}
+
+document.getElementById('b-start').onclick = async ()=>{
+  const r = await api('/api/engine/start', {method:'POST'});
+  toast(r.msg || (r.ok?'已启动':'启动失败'));
+  setTimeout(refresh, 900);
+};
+document.getElementById('b-stop').onclick = async ()=>{
+  const r = await api('/api/engine/stop', {method:'POST'});
+  toast(r.msg);
+  setTimeout(refresh, 600);
+};
+document.getElementById('b-archive').onclick = async ()=>{
+  const r = await api('/api/archive', {method:'POST'});
+  toast(r.msg || '完成');
+  refresh();
+};
+document.getElementById('b-clean').onclick = async ()=>{
+  if(!confirm('会删除 downloads 下所有 *.playback 临时目录（下载切片），已下载的成片不受影响。继续？')) return;
+  const r = await api('/api/cleanup', {method:'POST'});
+  toast(r.msg || '完成');
+  refresh();
+};
+document.getElementById('b-quit').onclick = async ()=>{
+  if(!confirm('退出会同时停止引擎并关闭面板，确定吗？')) return;
+  try{ await api('/api/quit', {method:'POST'}); }catch(e){}
+  document.body.innerHTML = '<div style="padding:80px;text-align:center;color:#8496b0;font-size:14px">程序已退出，可以关闭这个页面了。</div>';
+};
+document.getElementById('b-proxy-on').onclick = async ()=>{
+  const port = status?.proxy_port || 2023;
+  const r = await api('/api/proxy/on', {method:'POST', body:JSON.stringify({port})});
+  toast(r.msg);
+  refresh();
+};
+document.getElementById('b-proxy-off').onclick = async ()=>{
+  const r = await api('/api/proxy/off', {method:'POST'});
+  toast(r.msg);
+  refresh();
+};
+
+function openData(ev){
+  ev.preventDefault();
+  api('/api/open', {method:'POST', body:JSON.stringify({path:'downloads'})})
+    .then(r=>{ if(!r.ok) toast(r.msg||'打开失败'); });
+}
+
+function engineUrl(){
+  const e = status && status.engine;
+  return (e && e.running && e.port) ? `http://127.0.0.1:${e.port}/` : '';
+}
+
+function reloadFrame(){
+  const u = engineUrl();
+  if(!u){ toast('引擎未运行'); return; }
+  const fr = document.getElementById('frame');
+  fr.dataset.loaded = u;                     // 保持基准不变，render 不会重复加载
+  fr.src = u + (u.includes('?') ? '&' : '?') + '_t=' + Date.now();
+}
+
+document.getElementById('b-reload-frame').onclick = reloadFrame;
+document.getElementById('b-open-frame').onclick = ()=>{
+  const u = engineUrl();
+  if(!u) return toast('引擎未运行');
+  window.open(u, '_blank');
+};
+
+document.getElementById('b-rec-start').onclick = async ()=>{
+  const url = document.getElementById('rec-url').value.trim();
+  if(!url) return toast('请先粘贴直播地址');
+  const r = await api('/api/record/start', {method:'POST', body: JSON.stringify({
+    url,
+    referer: document.getElementById('rec-ref').value.trim(),
+    cookie: document.getElementById('rec-cookie').value.trim(),
+    name: document.getElementById('rec-name').value.trim(),
+    auto_mp4: document.getElementById('rec-auto').checked
+  })});
+  toast(r.msg || (r.ok ? '已开始' : '启动失败'));
+  if(r.ok){ document.getElementById('rec-url').value = ''; refreshRecords(); }
+};
+document.getElementById('rec-auto').onchange = async (e)=>{
+  await api('/api/settings', {method:'POST', body: JSON.stringify({auto_mp4: e.target.checked})});
+  toast(e.target.checked ? '录制结束会自动转 MP4' : '录制结束保留 .ts');
+};
+document.getElementById('b-rec-open').onclick = ()=>{
+  api('/api/open', {method:'POST', body: JSON.stringify({path:'record'})})
+    .then(r => { if(!r.ok) toast(r.msg || '打开失败'); });
+};
+
+const TITLES = {dash:['工作台','引擎与代理控制'],engine:['引擎界面','原生下载管理'],tools:['工具箱','解析与下载内核'],record:['录直播','拉流录制 m3u8 / flv'],help:['使用说明','上手与排障']};
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    const k = b.dataset.tab;
+    document.getElementById('page-' + k).classList.add('on');
+    document.getElementById('title').textContent = TITLES[k][0];
+    document.getElementById('subtitle').textContent = TITLES[k][1];
+    if (k === 'engine' && engineUrl()) reloadFrame();   // 每次进来重载，避免残留已删除的任务
+    if (k === 'record') refreshRecords();
+  };
+});
+
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
